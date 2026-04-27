@@ -9,21 +9,30 @@ ve bu proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanır
 
 ## [Unreleased]
 
-## [0.1.1] - 2026-04-27
+## [0.2.0] - 2026-04-27
 
 ### Added
 
+- **Otomatik chunking**: `fetch()` artık 28 günden uzun aralıkları otomatik olarak
+  parçalara böler ve tek DataFrame'de birleştirir. TEFAS API'si tek istekte 1 ay
+  sınırı uyguladığı için bu sınır arka planda yönetilir.
 - Custom exception hierarchy: `TefasError`, `TefasAPIError`, `TefasRateLimitError`, `TefasInvalidParameterError`.
 - Tüm public API'lere type hints (`Literal["YAT", "EMK", "BYF"]`, `DateLike` alias).
 - NumPy stilinde detaylı docstring'ler (`Parameters`, `Returns`, `Raises`, `Examples`).
 - Tarih için `date`, `datetime`, `pd.Timestamp` desteği (sadece string yerine).
 - `start > end` validation.
+- Yeni testler: `test_fetch_long_range_chunks_automatically`, `test_split_range_helper`,
+  `test_fetch_start_after_end_raises`.
 
 ### Changed
 
+- Tatil/hafta sonu için TEFAS'ın bazen döndürdüğü "Index out of bounds" gibi mesajlar
+  artık boş DataFrame olarak yorumlanır (önceden `TefasAPIError` fırlatıyordu).
 - Geçersiz parametre artık `ValueError` yerine `TefasInvalidParameterError` fırlatır.
   Geriye uyumluluk korunmuştur (`TefasInvalidParameterError`, `ValueError`'dan da türer).
 - API hataları artık generic `RuntimeError` yerine `TefasAPIError`/`TefasRateLimitError` fırlatır.
+- API isteklerinde `bitSira` parametresi 5000'den 100000'e çıkarıldı (yoğun günlerde
+  veri kaybını önler).
 
 ## [0.1.0] - 2026-04-27
 
@@ -44,6 +53,6 @@ ve bu proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanır
 - `https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir` - fon genel bilgileri.
 - `https://www.tefas.gov.tr/api/funds/dagilimSiraliGetirT` - portföy dağılımı.
 
-[Unreleased]: https://github.com/mirzazad/pytefas/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/mirzazad/pytefas/releases/tag/v0.1.1
+[Unreleased]: https://github.com/mirzazad/pytefas/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mirzazad/pytefas/releases/tag/v0.2.0
 [0.1.0]: https://github.com/mirzazad/pytefas/releases/tag/v0.1.0

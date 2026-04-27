@@ -1,7 +1,7 @@
 """TEFAS yeni API'si için Crawler sınıfı."""
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Iterable, Literal, Optional, Union
 
 import pandas as pd
@@ -16,6 +16,9 @@ from .schema import DIST_FIELDS, FUND_KINDS, INFO_FIELDS
 
 INFO_URL = "https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir"
 DIST_URL = "https://www.tefas.gov.tr/api/funds/dagilimSiraliGetirT"
+
+# TEFAS API'si tek istekte 1 ay (~30 gün) sınırı uygular. 28 gün koruyucu eşik.
+MAX_DAYS_PER_REQUEST = 28
 
 DEFAULT_HEADERS = {
     "Accept": "*/*",
@@ -33,31 +36,52 @@ Kind = Literal["YAT", "EMK", "BYF"]
 Columns = Literal["info", "breakdown"]
 
 
-def _to_yyyymmdd(d: DateLike) -> str:
-    """Tarihi 'YYYYMMDD' formatına çevirir.
+def _parse_date(d: DateLike) -> datetime:
+    """Verilen tarih girdisini `datetime`'a normalize eder.
 
     Parameters
     ----------
     d : str, date, datetime veya pd.Timestamp
         Çevrilecek tarih. String için 'YYYY-MM-DD' veya 'YYYYMMDD' kabul edilir.
 
+    Returns
+    -------
+    datetime
+        Normalize edilmiş tarih (saat 00:00:00).
+
     Raises
     ------
     TefasInvalidParameterError
         Tarih formatı tanınmazsa.
     """
+    if isinstance(d, datetime):
+        return d
+    if isinstance(d, pd.Timestamp):
+        return d.to_pydatetime()
+    if isinstance(d, date):
+        return datetime(d.year, d.month, d.day)
     if isinstance(d, str):
-        if len(d) == 8 and d.isdigit():
-            return d
         try:
-            return pd.to_datetime(d).strftime("%Y%m%d")
+            return pd.to_datetime(d).to_pydatetime()
         except (ValueError, TypeError) as e:
             raise TefasInvalidParameterError(f"Tarih formatı anlaşılmadı: {d!r}") from e
-    if isinstance(d, (datetime, pd.Timestamp)):
-        return d.strftime("%Y%m%d")
-    if isinstance(d, date):
-        return d.strftime("%Y%m%d")
     raise TefasInvalidParameterError(f"Tarih formatı anlaşılmadı: {d!r}")
+
+
+def _split_range(
+    start: datetime, end: datetime, max_days: int
+) -> list[tuple[datetime, datetime]]:
+    """[start, end] aralığını en fazla `max_days` günlük parçalara böler.
+
+    Sınırlar dahildir; ardışık parçalar 1 gün boşluksuz birbirini takip eder.
+    """
+    chunks: list[tuple[datetime, datetime]] = []
+    cur = start
+    while cur <= end:
+        chunk_end = min(cur + timedelta(days=max_days - 1), end)
+        chunks.append((cur, chunk_end))
+        cur = chunk_end + timedelta(days=1)
+    return chunks
 
 
 class Crawler:
@@ -93,6 +117,11 @@ class Crawler:
     ) -> pd.DataFrame:
         """Belirli bir tarih (veya tarih aralığı) için TEFAS verisini çeker.
 
+        TEFAS API'si tek istekte en fazla 1 ay (yaklaşık 30 gün) veri döndürür.
+        Daha uzun aralıklar otomatik olarak ``MAX_DAYS_PER_REQUEST`` (28 gün)
+        boyutunda parçalara bölünüp ardışık çağrılarla çekilir, tek bir
+        DataFrame'de birleştirilir. Rate-limit otomatik yönetilir.
+
         Parameters
         ----------
         start : str, date, datetime veya pd.Timestamp
@@ -115,13 +144,14 @@ class Crawler:
         Returns
         -------
         pandas.DataFrame
-            Her satır bir fonu temsil eder. Sütunlar `columns` parametresine
-            bağlıdır. Veri yoksa (tatil/hafta sonu) boş DataFrame döner.
+            Her satır bir (fon, tarih) çiftini temsil eder. Sütunlar `columns`
+            parametresine bağlıdır. Veri yoksa (tatil/hafta sonu) boş DataFrame
+            döner.
 
         Raises
         ------
         TefasInvalidParameterError
-            `kind` veya `columns` geçersiz; tarih formatı tanınmıyor.
+            `kind` veya `columns` geçersiz; tarih formatı tanınmıyor; start > end.
         TefasAPIError
             TEFAS API'si hata yanıtı döndürdü.
         TefasRateLimitError
@@ -135,9 +165,10 @@ class Crawler:
         >>> df = tefas.fetch("2026-04-24", columns="info", kind="YAT")
         >>> df[["fund_code", "price", "portfolio_size"]].head()
 
-        Tarih aralığı, varlık dağılımı:
+        Uzun aralık (otomatik chunklanır):
 
-        >>> df = tefas.fetch("2026-04-22", "2026-04-24", columns="breakdown")
+        >>> df = tefas.fetch("2025-01-01", "2026-04-01", kind="YAT")
+        >>> df["date"].nunique()  # ~250 iş günü
         """
         if kind not in FUND_KINDS:
             raise TefasInvalidParameterError(
@@ -148,13 +179,41 @@ class Crawler:
                 f"columns must be 'info' or 'breakdown', got {columns!r}"
             )
 
-        bas = _to_yyyymmdd(start)
-        bit = _to_yyyymmdd(end if end is not None else start)
-        if bas > bit:
+        # Normalize tarihler
+        start_dt = _parse_date(start)
+        end_dt = _parse_date(end) if end is not None else start_dt
+        if start_dt > end_dt:
             raise TefasInvalidParameterError(
-                f"start ({bas}) bitTarih'ten sonra olamaz ({bit})"
+                f"start ({start_dt.date()}) end'den sonra olamaz ({end_dt.date()})"
             )
 
+        # Chunk'lara böl
+        chunks = _split_range(start_dt, end_dt, MAX_DAYS_PER_REQUEST)
+
+        frames = []
+        for chunk_start, chunk_end in chunks:
+            df = self._fetch_single(chunk_start, chunk_end, kind, columns)
+            if not df.empty:
+                frames.append(df)
+
+        if not frames:
+            return pd.DataFrame()
+
+        out = pd.concat(frames, ignore_index=True)
+        # Aynı (date, fund_code) tekrar gelirse en sonuncu geçerli
+        if "date" in out.columns and "fund_code" in out.columns:
+            out = out.drop_duplicates(subset=["date", "fund_code"], keep="last")
+            out = out.sort_values(["date", "fund_code"]).reset_index(drop=True)
+        return out
+
+    def _fetch_single(
+        self,
+        start_dt: datetime,
+        end_dt: datetime,
+        kind: Kind,
+        columns: Columns,
+    ) -> pd.DataFrame:
+        """Tek bir API çağrısı (en fazla MAX_DAYS_PER_REQUEST gün)."""
         body = {
             "fonTipi": kind,
             "fonKodu": None,
@@ -164,10 +223,10 @@ class Crawler:
             "sfonTurKod": None,
             "fonTurAciklama": None,
             "kurucuKod": None,
-            "basTarih": bas,
-            "bitTarih": bit,
+            "basTarih": start_dt.strftime("%Y%m%d"),
+            "bitTarih": end_dt.strftime("%Y%m%d"),
             "basSira": 1,
-            "bitSira": 5000,
+            "bitSira": 100000,
             "dil": "TR",
             "sFonTurKod": "",
             "fonKod": "",
@@ -184,11 +243,20 @@ class Crawler:
             # _ratelimit modülü retry tükendiğinde RuntimeError fırlatır
             raise TefasRateLimitError(str(e)) from e
 
-        if data.get("errorCode"):
+        # API hem errorCode hem errorMessage gönderebilir; ikisini de kontrol et.
+        # Tatil/hafta sonu için TEFAS bazen "Index 0 out of bounds for length 0"
+        # gibi mesajlar dönebilir - bunu boş veri olarak yorumla.
+        err_code = data.get("errorCode")
+        err_msg = data.get("errorMessage")
+        empty_messages = ("out of bounds", "veri bulunamadı")
+        is_empty_marker = err_msg and any(m in err_msg.lower() for m in empty_messages)
+        if (err_code or err_msg) and not is_empty_marker:
             raise TefasAPIError(
-                f"TEFAS API error: {data.get('errorMessage')} "
-                f"(code: {data.get('errorCode')})"
+                f"TEFAS API error: {err_msg}"
+                + (f" (code: {err_code})" if err_code else "")
             )
+        if is_empty_marker:
+            return pd.DataFrame()
 
         rows = data.get("resultList") or []
         if not rows:
