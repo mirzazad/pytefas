@@ -3,11 +3,21 @@
 [![PyPI version](https://img.shields.io/pypi/v/pytefas.svg)](https://pypi.org/project/pytefas/)
 [![Python versions](https://img.shields.io/pypi/pyversions/pytefas.svg)](https://pypi.org/project/pytefas/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![tests](https://github.com/mirzazad/pytefas/actions/workflows/test.yml/badge.svg)](https://github.com/mirzazad/pytefas/actions/workflows/test.yml)
 [![canary](https://github.com/mirzazad/pytefas/actions/workflows/canary.yml/badge.svg)](https://github.com/mirzazad/pytefas/actions/workflows/canary.yml)
 
 [TEFAS (Türkiye Elektronik Fon Alım Satım Platformu)](https://www.tefas.gov.tr/) için modern Python istemcisi.
 
 Yeni TEFAS sitesinin (Next.js tabanlı, 2026'da yenilendi) doğrudan resmi API endpoint'lerini kullanır. Authorization, login veya API anahtarı gerektirmez.
+
+## Neden pytefas?
+
+TEFAS sitesi 2026'da Next.js tabanlı yeni bir altyapıya geçti. Eski HTML scraping tabanlı çözümler bu yenilemeden etkilendi. pytefas, yeni sitenin doğrudan JSON API endpoint'lerini kullanır:
+
+- HTML parse yerine yapısal JSON
+- Daha hızlı, daha az kırılgan
+- 50+ varlık dağılımı kolonu (eski araçlardaki kısıtlama yok)
+- Tek istekte 1 ay sınırını arka planda otomatik çözer
 
 ## Özellikler
 
@@ -54,7 +64,9 @@ print(df.head())
 df = tefas.fetch("2026-04-24", columns="info", kind="YAT")
 ```
 
-8 sütun döner: `date, kind, fund_code, fund_name, price, shares_outstanding, investor_count, portfolio_size, exchange_bulletin_price`.
+9 sütun döner: `date, kind, fund_code, fund_name, price, shares_outstanding, investor_count, portfolio_size, exchange_bulletin_price`.
+
+`exchange_bulletin_price` (borsa bülten fiyatı) genellikle BYF için doludur; YAT/EMK için `None` olabilir.
 
 ### Portföy varlık dağılımı
 
@@ -153,6 +165,10 @@ TEFAS API'si halen genel kullanıma açıktır ancak resmi olarak dokümante edi
 
 Periyodik canary testi her hafta TEFAS API'sinin çalıştığını doğrular ([Actions tab](https://github.com/mirzazad/pytefas/actions)).
 
+## Değişiklik geçmişi
+
+Versiyonlar arası değişiklikler için [CHANGELOG.md](CHANGELOG.md).
+
 ## Lisans
 
 MIT - bkz. [LICENSE](LICENSE).
@@ -160,3 +176,7 @@ MIT - bkz. [LICENSE](LICENSE).
 ## Katkı
 
 Pull request'ler memnuniyetle karşılanır. Major değişiklikler için önce issue açıp tartışalım. Detay için [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Teşekkürler
+
+TEFAS Python ekosistemine yıllardır katkı sağlayan açık kaynak geliştiricilere teşekkürler. Bu paket, topluluğun kollektif çabasının bir devamıdır.
