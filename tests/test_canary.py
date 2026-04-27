@@ -64,3 +64,32 @@ def test_api_responds_breakdown(crawler, last_bd):
     valid_count = ((totals >= 95) & (totals <= 105)).sum()
     assert valid_count > len(df) * 0.95, \
         f"Fonların %95'inden azı geçerli yüzde toplamına sahip ({valid_count}/{len(df)})"
+
+
+def test_holiday_returns_empty(crawler):
+    """Tatil/hafta sonu için boş DataFrame dönmeli (Pazar günü)."""
+    df = crawler.fetch("2026-04-26", columns="info", kind="YAT")
+    assert df.empty
+
+
+def test_fetch_many_combines_kinds(crawler, last_bd):
+    """fetch_many YAT/EMK/BYF'i birleştirebiliyor mu."""
+    df = crawler.fetch_many(last_bd, columns="info")
+    if df.empty:
+        # Son iş gününde de boş gelirse 1 gün öncesini dene
+        prev = (datetime.strptime(last_bd, "%Y-%m-%d") - timedelta(days=3)).strftime("%Y-%m-%d")
+        df = crawler.fetch_many(prev, columns="info")
+    assert not df.empty
+    kinds = set(df["kind"].unique())
+    assert kinds == {"YAT", "EMK", "BYF"}
+
+
+def test_long_range_auto_chunks(crawler):
+    """60 günlük aralık otomatik chunklanır (TEFAS 1 ay sınırı arka planda yönetilir)."""
+    df = crawler.fetch("2026-02-23", "2026-04-24", columns="info", kind="YAT")
+    assert not df.empty
+    # 60 gün içinde ~40+ iş günü olmalı
+    assert df["date"].nunique() >= 30
+    # AAK gibi köklü bir fon her gün olmalı
+    aak = df[df["fund_code"] == "AAK"]
+    assert len(aak) >= 30

@@ -1,56 +1,23 @@
-"""pytefas için temel testler.
+"""pytefas için ağ bağımsız unit testler.
 
-Network'e gerçek bir istek atar - TEFAS canlı olmalı. Offline testler için
-mock ekleyebiliriz ileride.
+Bu testler TEFAS API'sine gitmez - sadece input validation ve helper
+fonksiyonlarını test eder. Her platformda hızlı ve deterministik çalışır.
+
+API entegrasyonu testleri için bkz. `test_canary.py`.
 """
-import pandas as pd
+from datetime import datetime
+
 import pytest
 
-from pytefas import Crawler
+from pytefas import (
+    Crawler,
+    TefasInvalidParameterError,
+)
 
 
 @pytest.fixture(scope="module")
 def crawler():
     return Crawler()
-
-
-def test_fetch_info_yat(crawler):
-    df = crawler.fetch("2026-04-24", columns="info", kind="YAT")
-    assert isinstance(df, pd.DataFrame)
-    assert not df.empty
-    # Beklenen sütunlar
-    for col in ("date", "kind", "fund_code", "fund_name", "price", "portfolio_size"):
-        assert col in df.columns, f"Eksik sütun: {col}"
-    # Sağlık kontrolü
-    assert df["kind"].unique().tolist() == ["YAT"]
-    assert df["fund_code"].nunique() == len(df)
-    # Fiyatlar 0 olabilir (yeni kurulmuş fon, kapanmış vs.) ama negatif olmamalı
-    assert (df["price"].fillna(0) >= 0).all()
-    assert (df["price"] > 0).any()
-
-
-def test_fetch_breakdown_yat(crawler):
-    df = crawler.fetch("2026-04-24", columns="breakdown", kind="YAT")
-    assert isinstance(df, pd.DataFrame)
-    assert not df.empty
-    # Yüzde toplamı ~100 olmalı
-    pct_cols = [c for c in df.columns if c.endswith("_pct")]
-    totals = df[pct_cols].fillna(0).sum(axis=1)
-    assert ((totals >= 95) & (totals <= 105)).all(), \
-        f"Toplam yüzde 100 değil: min={totals.min()}, max={totals.max()}"
-
-
-def test_fetch_holiday_returns_empty(crawler):
-    # Pazar günü
-    df = crawler.fetch("2026-04-26", columns="info", kind="YAT")
-    assert df.empty
-
-
-def test_fetch_many_combines_kinds(crawler):
-    df = crawler.fetch_many("2026-04-24", columns="info")
-    assert not df.empty
-    kinds = set(df["kind"].unique())
-    assert kinds == {"YAT", "EMK", "BYF"}
 
 
 def test_invalid_kind_raises(crawler):
@@ -63,38 +30,69 @@ def test_invalid_columns_raises(crawler):
         crawler.fetch("2026-04-24", columns="INVALID")
 
 
-def test_fetch_long_range_chunks_automatically(crawler):
-    """60 günlük aralık otomatik chunklanır (TEFAS API'si 1 ay sınırı uygular)."""
-    df = crawler.fetch("2026-02-23", "2026-04-24", columns="info", kind="YAT")
-    assert not df.empty
-    # 60 gün içinde ~40+ iş günü olmalı
-    assert df["date"].nunique() >= 30
-    # AAK gibi köklü bir fon her gün olmalı
-    aak = df[df["fund_code"] == "AAK"]
-    assert len(aak) >= 30
+def test_invalid_kind_raises_typed(crawler):
+    """TefasInvalidParameterError fırlamalı (ValueError'dan da türer)."""
+    with pytest.raises(TefasInvalidParameterError):
+        crawler.fetch("2026-04-24", kind="INVALID")
 
 
-def test_split_range_helper():
-    """_split_range helper birim testi."""
-    from datetime import datetime
+def test_fetch_start_after_end_raises(crawler):
+    with pytest.raises(TefasInvalidParameterError):
+        crawler.fetch("2026-04-24", "2026-04-20")
+
+
+def test_invalid_date_format_raises(crawler):
+    with pytest.raises(TefasInvalidParameterError):
+        crawler.fetch("not-a-date")
+
+
+def test_split_range_single_day():
     from pytefas.client import _split_range
-
-    # Tek gün
     chunks = _split_range(datetime(2026, 4, 24), datetime(2026, 4, 24), 28)
     assert chunks == [(datetime(2026, 4, 24), datetime(2026, 4, 24))]
 
-    # Tam 28 gün
+
+def test_split_range_exact_28_days():
+    from pytefas.client import _split_range
     chunks = _split_range(datetime(2026, 4, 1), datetime(2026, 4, 28), 28)
     assert len(chunks) == 1
 
-    # 29 gün -> 2 chunk
+
+def test_split_range_29_days_creates_two_chunks():
+    from pytefas.client import _split_range
     chunks = _split_range(datetime(2026, 4, 1), datetime(2026, 4, 29), 28)
     assert len(chunks) == 2
     assert chunks[0] == (datetime(2026, 4, 1), datetime(2026, 4, 28))
     assert chunks[1] == (datetime(2026, 4, 29), datetime(2026, 4, 29))
 
 
-def test_fetch_start_after_end_raises(crawler):
-    from pytefas import TefasInvalidParameterError
+def test_split_range_one_year_creates_13_chunks():
+    from pytefas.client import _split_range
+    chunks = _split_range(datetime(2025, 4, 1), datetime(2026, 4, 1), 28)
+    # 365 gun / 28 ~= 14 chunk
+    assert 13 <= len(chunks) <= 14
+    # Hicbir chunk 28 gunden uzun olamaz
+    for s, e in chunks:
+        assert (e - s).days < 28
+
+
+def test_parse_date_accepts_string():
+    from pytefas.client import _parse_date
+    assert _parse_date("2026-04-24") == datetime(2026, 4, 24)
+
+
+def test_parse_date_accepts_yyyymmdd():
+    from pytefas.client import _parse_date
+    assert _parse_date("20260424") == datetime(2026, 4, 24)
+
+
+def test_parse_date_accepts_datetime():
+    from pytefas.client import _parse_date
+    d = datetime(2026, 4, 24, 15, 30)
+    assert _parse_date(d) == d
+
+
+def test_parse_date_rejects_garbage():
+    from pytefas.client import _parse_date
     with pytest.raises(TefasInvalidParameterError):
-        crawler.fetch("2026-04-24", "2026-04-20")
+        _parse_date("not-a-date")
