@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pytefas"
+version = "0.1.0"
+description = "TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) için modern Python istemcisi — yeni resmi API'leri kullanır."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Farshad Mirzazad" },
+]
+requires-python = ">=3.9"
+keywords = ["tefas", "fund", "turkey", "finance", "api"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+    "pandas>=1.3",
+    "requests>=2.25",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "build",
+    "twine",
+]
+
+[project.urls]
+Homepage = "https://github.com/mirzazad/pytefas"
+Repository = "https://github.com/mirzazad/pytefas"
+Issues = "https://github.com/mirzazad/pytefas/issues"
+
+[tool.setuptools.packages.find]
+include = ["pytefas*"]
+exclude = ["tests*", "examples*"]
