@@ -1,16 +1,18 @@
 # pytefas
 
+[![PyPI version](https://img.shields.io/pypi/v/pytefas.svg)](https://pypi.org/project/pytefas/)
+[![Python versions](https://img.shields.io/pypi/pyversions/pytefas.svg)](https://pypi.org/project/pytefas/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Downloads](https://static.pepy.tech/badge/pytefas/month)](https://pepy.tech/project/pytefas)
+
 [TEFAS (Türkiye Elektronik Fon Alım Satım Platformu)](https://www.tefas.gov.tr/) için modern Python istemcisi.
 
 Yeni TEFAS sitesinin (Next.js tabanlı, 2026'da yenilendi) doğrudan resmi API endpoint'lerini kullanır. Authorization, login veya API anahtarı gerektirmez.
 
-## Neden yeni bir paket?
+## API endpoints
 
-Mevcut `tefas-crawler` paketi (PyPI 0.5.0) eski TEFAS sitesinin (`fundturkey.com.tr`) endpoint'lerini kullanıyor ve **artık çalışmıyor** — TEFAS yeni Next.js tabanlı bir siteye geçti, eski endpoint'ler 404 dönüyor.
-
-Bu paket yeni sitenin doğrudan API'lerini kullanır:
-- `https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir` (fiyat / pay sayısı / büyüklük)
-- `https://www.tefas.gov.tr/api/funds/dagilimSiraliGetirT` (portföy varlık dağılımı)
+- `https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir` — fund info (price / shares / size)
+- `https://www.tefas.gov.tr/api/funds/dagilimSiraliGetirT` — portfolio breakdown
 
 ## Kurulum
 
