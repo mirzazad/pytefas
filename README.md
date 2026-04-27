@@ -3,7 +3,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/pytefas.svg)](https://pypi.org/project/pytefas/)
 [![Python versions](https://img.shields.io/pypi/pyversions/pytefas.svg)](https://pypi.org/project/pytefas/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Downloads](https://img.shields.io/pypi/dm/pytefas.svg)](https://pypi.org/project/pytefas/)
+
 [![canary](https://github.com/mirzazad/pytefas/actions/workflows/canary.yml/badge.svg)](https://github.com/mirzazad/pytefas/actions/workflows/canary.yml)
 
 
