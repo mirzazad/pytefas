@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pytefas"
-version = "0.2.0"
-description = "TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) için modern Python istemcisi — yeni resmi API'leri kullanır."
+version = "0.2.1"
+description = "TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) için modern Python istemcisi - yeni resmi API'leri kullanır."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [

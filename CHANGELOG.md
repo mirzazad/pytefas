@@ -9,6 +9,12 @@ ve bu proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanır
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-27
+
+### Fixed
+
+- Paket açıklamasında metin tutarlılığı.
+
 ## [0.2.0] - 2026-04-27
 
 ### Added
@@ -53,6 +59,7 @@ ve bu proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanır
 - `https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir` - fon genel bilgileri.
 - `https://www.tefas.gov.tr/api/funds/dagilimSiraliGetirT` - portföy dağılımı.
 
-[Unreleased]: https://github.com/mirzazad/pytefas/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/mirzazad/pytefas/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/mirzazad/pytefas/releases/tag/v0.2.1
 [0.2.0]: https://github.com/mirzazad/pytefas/releases/tag/v0.2.0
 [0.1.0]: https://github.com/mirzazad/pytefas/releases/tag/v0.1.0
