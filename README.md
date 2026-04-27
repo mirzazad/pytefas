@@ -9,6 +9,16 @@
 
 Yeni TEFAS sitesinin (Next.js tabanlı, 2026'da yenilendi) doğrudan resmi API endpoint'lerini kullanır. Authorization, login veya API anahtarı gerektirmez.
 
+## Özellikler
+
+- Yeni resmi TEFAS API endpoint'lerini doğrudan kullanır (HTML scraping yok).
+- **Otomatik chunking** - uzun tarih aralıklarını arka planda parçalara böler.
+- **Otomatik rate-limit yönetimi** (TEFAS dakikada 6 istek sınırına sahiptir).
+- 50+ varlık dağılımı kolonu (hisse, repo, eurobond, kıymetli madenler vs.).
+- YAT / EMK / BYF fon tipleri tek DataFrame'de birleştirilebilir.
+- Custom exception'lar - hata yönetimi tipli ve kontrollü.
+- Tam type hints + NumPy stilinde docstring'ler.
+
 ## API endpoints
 
 - `https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir` - fund info (price / shares / size)
@@ -20,9 +30,7 @@ Yeni TEFAS sitesinin (Next.js tabanlı, 2026'da yenilendi) doğrudan resmi API e
 pip install pytefas
 ```
 
-## Kullanım
-
-### Tek bir gün, fiyat bilgisi
+## Hızlı başlangıç
 
 ```python
 from pytefas import Crawler
@@ -38,51 +46,112 @@ print(df.head())
 1 2026-04-24  YAT       AAL    ATA PORTFÖY PARA PİYASASI (TL) FONU   ...
 ```
 
+## Kullanım
+
+### Tek bir gün, fiyat bilgisi
+
+```python
+df = tefas.fetch("2026-04-24", columns="info", kind="YAT")
+```
+
+8 sütun döner: `date, kind, fund_code, fund_name, price, shares_outstanding, investor_count, portfolio_size, exchange_bulletin_price`.
+
 ### Portföy varlık dağılımı
 
 ```python
 df = tefas.fetch("2026-04-24", columns="breakdown", kind="YAT")
-# Sütunlar: stock_pct, government_bond_pct, repo_pct, foreign_stock_pct, ...
+# 50+ sütun: stock_pct, government_bond_pct, repo_pct, foreign_stock_pct, ...
 ```
 
-### Tarih aralığı
+Her satırın yüzde toplamı ~100 olur.
+
+### Tarih aralığı (otomatik chunking)
+
+TEFAS API'si tek istekte 1 ay (yaklaşık 30 gün) sınırı uygular. pytefas bu sınırı arka planda yönetir - uzun aralıklar otomatik olarak 28 günlük parçalara bölünür ve birleştirilir.
 
 ```python
-df = tefas.fetch(start="2026-04-22", end="2026-04-24", columns="info", kind="YAT")
+# 1 ay
+df = tefas.fetch("2026-03-24", "2026-04-24", kind="YAT")
+
+# 1 yıl - otomatik chunklanır (~13 chunk, rate-limit ile ~3 dakika)
+df = tefas.fetch("2025-04-01", "2026-04-01", kind="YAT")
+print(df["date"].nunique())  # ~250 iş günü
 ```
 
 ### Tüm fon tiplerini birlikte (YAT + EMK + BYF)
 
 ```python
 df = tefas.fetch_many("2026-04-24", columns="info")
-# 'kind' sütunu YAT/EMK/BYF değerlerini içerir
+print(df.groupby("kind").size())
+# kind
+# BYF      30
+# EMK     392
+# YAT    2001
 ```
 
+### Hata yönetimi
+
+```python
+from pytefas import (
+    Crawler,
+    TefasInvalidParameterError,
+    TefasAPIError,
+    TefasRateLimitError,
+)
+
+tefas = Crawler()
+
+try:
+    df = tefas.fetch("2026-04-24", kind="INVALID")
+except TefasInvalidParameterError as e:
+    print(f"Geçersiz parametre: {e}")
+except TefasRateLimitError as e:
+    print(f"Rate limit aşıldı: {e}")
+except TefasAPIError as e:
+    print(f"API hatası: {e}")
+```
+
+`TefasInvalidParameterError` aynı zamanda `ValueError`'dan da türer - eski kodlar `except ValueError` ile yakalamaya devam edebilir.
+
 ## Parametreler
+
+### `Crawler(timeout=60, max_retry=5)`
+
+| Parametre | Açıklama |
+|-----------|----------|
+| `timeout` | HTTP istekleri için saniye cinsinden zaman aşımı. |
+| `max_retry` | Rate-limit veya geçici hatalarda maksimum yeniden deneme sayısı. |
 
 ### `Crawler.fetch(start, end=None, kind="YAT", columns="info")`
 
 | Parametre | Tip | Açıklama |
 |-----------|-----|----------|
-| `start` | `str` veya `datetime` | Başlangıç tarihi (`'YYYY-MM-DD'` formatı). |
-| `end` | `str` veya `datetime` veya `None` | Bitiş tarihi. `None` = `start` ile aynı. |
-| `kind` | `"YAT"`, `"EMK"`, `"BYF"` | Fon tipi: Yatırım / Emeklilik / Borsa Yatırım Fonu. |
-| `columns` | `"info"` veya `"breakdown"` | Genel bilgi vs. portföy dağılımı. |
+| `start` | `str`, `date`, `datetime`, `pd.Timestamp` | Başlangıç tarihi. |
+| `end` | aynı, veya `None` | Bitiş tarihi. `None` = `start` ile aynı. |
+| `kind` | `"YAT"`, `"EMK"`, `"BYF"` | Fon tipi (Yatırım / Emeklilik / BYF). |
+| `columns` | `"info"` veya `"breakdown"` | Genel bilgi mi portföy dağılımı mı. |
 
-### Dönen DataFrame
+### `Crawler.fetch_many(start, end=None, kinds=("YAT","EMK","BYF"), columns="info")`
 
-- **`columns="info"`** → 8 sütun: `date, kind, fund_code, fund_name, price, shares_outstanding, investor_count, portfolio_size, exchange_bulletin_price`
-- **`columns="breakdown"`** → 50+ sütun: tüm varlık sınıflarının yüzdeleri (ör. `stock_pct`, `repo_pct`, `foreign_stock_pct`, `precious_metals_pct`, vs.)
+`fetch` ile aynı, ama birden fazla `kind`'ı tek DataFrame'de birleştirir.
 
-Tatil/hafta sonu için boş DataFrame döner.
+## Tarihsel veri ve süre tahmini
 
-## Rate limiting
+TEFAS rate-limit'i nedeniyle uzun aralıklar zaman alır:
 
-TEFAS API'si dakikada 6 istek sınırına sahiptir. Paket bunu **otomatik** handle eder - limit aşılırsa bekler ve yeniden dener. Manuel bir şey yapmanıza gerek yok.
+| Aralık | Tahmini süre |
+|--------|--------------|
+| 1 hafta | ~10 saniye |
+| 1 ay | ~10 saniye (1 chunk) |
+| 3 ay | ~1 dakika |
+| 1 yıl | ~3 dakika |
+| 5 yıl | ~15 dakika |
 
 ## Stabilite
 
 TEFAS API'si halen genel kullanıma açıktır ancak resmi olarak dokümante edilmemiştir. TEFAS site değişikliği yaparsa paket güncellenmesi gerekebilir - issue açın veya PR gönderin.
+
+Periyodik canary testi her hafta TEFAS API'sinin çalıştığını doğrular ([Actions tab](https://github.com/mirzazad/pytefas/actions)).
 
 ## Lisans
 
@@ -90,4 +159,4 @@ MIT - bkz. [LICENSE](LICENSE).
 
 ## Katkı
 
-Pull request'ler memnuniyetle karşılanır. Major değişiklikler için önce issue açıp tartışalım.
+Pull request'ler memnuniyetle karşılanır. Major değişiklikler için önce issue açıp tartışalım. Detay için [CONTRIBUTING.md](CONTRIBUTING.md).
