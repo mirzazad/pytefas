@@ -4,6 +4,8 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/pytefas.svg)](https://pypi.org/project/pytefas/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Downloads](https://static.pepy.tech/badge/pytefas/month)](https://pepy.tech/project/pytefas)
+[![canary](https://github.com/mirzazad/pytefas/actions/workflows/canary.yml/badge.svg)](https://github.com/mirzazad/pytefas/actions/workflows/canary.yml)
+
 
 [TEFAS (Türkiye Elektronik Fon Alım Satım Platformu)](https://www.tefas.gov.tr/) için modern Python istemcisi.
 
