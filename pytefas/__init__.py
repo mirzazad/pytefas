@@ -1,4 +1,4 @@
-"""pytefas — TEFAS yeni resmi API'si için modern Python istemcisi.
+"""pytefas - TEFAS yeni resmi API'si için modern Python istemcisi.
 
 Hızlı başlangıç:
     >>> from pytefas import Crawler

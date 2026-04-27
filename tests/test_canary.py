@@ -2,11 +2,11 @@
 Canary testi: dinamik olarak son iş gününü kullanarak TEFAS API'sinin
 çalıştığını doğrular.
 
-Bu test sabit bir tarih kullanmaz, her zaman bugüne en yakın iş gününü
+Bu test sabit bir tarih kullanmaz - her zaman bugüne en yakın iş gününü
 seçer, böylece TEFAS eski verileri kaldırsa bile bozulmaz.
 
 GitHub Actions canary tarafından her pazartesi 16:00 UTC (TR 19:00)
-çalıştırılır, bu saatte TEFAS günlük veriyi tamamlamış olur.
+çalıştırılır - bu saatte TEFAS günlük veriyi tamamlamış olur.
 """
 from datetime import datetime, timedelta, timezone
 
@@ -36,7 +36,7 @@ def last_bd():
 
 
 def test_api_responds_info(crawler, last_bd):
-    """TEFAS info endpoint çalışıyor mu — son birkaç iş gününden birini dene."""
+    """TEFAS info endpoint çalışıyor mu - son birkaç iş gününden birini dene."""
     last = datetime.strptime(last_bd, "%Y-%m-%d")
     df = None
     for back in range(0, 5):
@@ -49,7 +49,7 @@ def test_api_responds_info(crawler, last_bd):
 
 
 def test_api_responds_breakdown(crawler, last_bd):
-    """TEFAS breakdown endpoint çalışıyor mu — yüzde toplamları ~100 olmalı."""
+    """TEFAS breakdown endpoint çalışıyor mu - yüzde toplamları ~100 olmalı."""
     last = datetime.strptime(last_bd, "%Y-%m-%d")
     df = None
     for back in range(0, 5):
@@ -59,7 +59,7 @@ def test_api_responds_breakdown(crawler, last_bd):
             break
     assert df is not None and not df.empty
     pct_cols = [c for c in df.columns if c.endswith("_pct")]
-    assert pct_cols, "Hiç yüzde sütunu yok — schema bozulmuş olabilir"
+    assert pct_cols, "Hiç yüzde sütunu yok - schema bozulmuş olabilir"
     totals = df[pct_cols].fillna(0).sum(axis=1)
     valid_count = ((totals >= 95) & (totals <= 105)).sum()
     assert valid_count > len(df) * 0.95, \

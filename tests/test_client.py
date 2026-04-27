@@ -1,6 +1,6 @@
 """pytefas için temel testler.
 
-Network'e gerçek bir istek atar — TEFAS canlı olmalı. Offline testler için
+Network'e gerçek bir istek atar - TEFAS canlı olmalı. Offline testler için
 mock ekleyebiliriz ileride.
 """
 import pandas as pd

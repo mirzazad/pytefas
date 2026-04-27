@@ -1,6 +1,6 @@
 """TEFAS API'sinin döndürdüğü kısa kodları okunabilir alan adlarına eşler."""
 
-# Portföy dağılımı (dagilimSiraliGetirT) — yüzde alanları
+# Portföy dağılımı (dagilimSiraliGetirT) - yüzde alanları
 DIST_FIELDS = {
     "fonKodu":  "fund_code",
     "fonUnvan": "fund_name",
