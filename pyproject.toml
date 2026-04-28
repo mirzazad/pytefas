@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pytefas"
-version = "0.2.1"
+version = "0.3.0"
 description = "TEFAS (Türkiye Elektronik Fon Alım Satım Platformu) için modern Python istemcisi - yeni resmi API'leri kullanır."
 readme = "README.md"
 license = { text = "MIT" }
@@ -12,7 +12,10 @@ authors = [
     { name = "Farshad Mirzazad" },
 ]
 requires-python = ">=3.9"
-keywords = ["tefas", "fund", "turkey", "finance", "api"]
+keywords = [
+    "tefas", "fund", "turkey", "turkiye", "finance", "api",
+    "mutual-funds", "yatirim-fonu", "bist", "fon-analiz",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Financial and Insurance Industry",
@@ -34,6 +37,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7",
+    "pytest-cov>=4",
+    "pytest-mock>=3.10",
+    "responses>=0.23",
+    "ruff>=0.1",
     "build",
     "twine",
 ]

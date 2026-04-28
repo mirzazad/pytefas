@@ -101,6 +101,19 @@ print(df.groupby("kind").size())
 # YAT    2001
 ```
 
+### Tek bir fonun geçmişi
+
+`fund_code` parametresiyle sadece bir fonun verisini çekersiniz. Uzun aralıklarda tek fon için chunking devam eder ama veri hacmi çok daha küçüktür.
+
+```python
+# AAK fonunun 1 yıllık fiyat geçmişi
+df = tefas.fetch("2025-04-28", "2026-04-28", kind="YAT", fund_code="AAK")
+print(df[["date", "price"]].head())
+
+# Hangi tipte olduğunu bilmiyorsan fetch_many kullanılır
+df = tefas.fetch_many("2025-04-28", "2026-04-28", fund_code="AAK")
+```
+
 ### Hata yönetimi
 
 ```python
@@ -134,7 +147,7 @@ except TefasAPIError as e:
 | `timeout` | HTTP istekleri için saniye cinsinden zaman aşımı. |
 | `max_retry` | Rate-limit veya geçici hatalarda maksimum yeniden deneme sayısı. |
 
-### `Crawler.fetch(start, end=None, kind="YAT", columns="info")`
+### `Crawler.fetch(start, end=None, kind="YAT", columns="info", fund_code=None)`
 
 | Parametre | Tip | Açıklama |
 |-----------|-----|----------|
@@ -142,10 +155,11 @@ except TefasAPIError as e:
 | `end` | aynı, veya `None` | Bitiş tarihi. `None` = `start` ile aynı. |
 | `kind` | `"YAT"`, `"EMK"`, `"BYF"` | Fon tipi (Yatırım / Emeklilik / BYF). |
 | `columns` | `"info"` veya `"breakdown"` | Genel bilgi mi portföy dağılımı mı. |
+| `fund_code` | `str` veya `None` | Belirli bir fon kodu (örn. `"AAK"`). `None` → tüm fonlar. |
 
-### `Crawler.fetch_many(start, end=None, kinds=("YAT","EMK","BYF"), columns="info")`
+### `Crawler.fetch_many(start, end=None, kinds=("YAT","EMK","BYF"), columns="info", fund_code=None)`
 
-`fetch` ile aynı, ama birden fazla `kind`'ı tek DataFrame'de birleştirir.
+`fetch` ile aynı, ama birden fazla `kind`'ı tek DataFrame'de birleştirir. `fund_code` verirsen her tipte o kodu arar - hangi tipte olduğunu bilmiyorsan kullanışlı.
 
 ## Tarihsel veri ve süre tahmini
 

@@ -9,6 +9,26 @@ ve bu proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanır
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-28
+
+### Added
+
+- **`fund_code` parametresi** `Crawler.fetch()` ve `Crawler.fetch_many()`'e eklendi.
+  Tek bir fonun tüm tarih aralığındaki verilerini çekmek için kullanılır.
+  Lower/upper case otomatik normalize edilir.
+
+  ```python
+  # AAK fonunun 1 yıllık fiyat geçmişi
+  df = tefas.fetch("2025-04-28", "2026-04-28", fund_code="AAK")
+  ```
+
+- Network bağımsız 13 unit test (önceden 6'ydı) - CI artık her platformda hızlı ve deterministik.
+- Multi-OS test workflow (`tests.yml`): Ubuntu/macOS/Windows × Python 3.9-3.12.
+
+### Changed
+
+- Network bağımlı testler `tests/test_canary.py`'a taşındı (haftalık canary workflow).
+
 ## [0.2.1] - 2026-04-27
 
 ### Fixed
@@ -59,7 +79,8 @@ ve bu proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanır
 - `https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir` - fon genel bilgileri.
 - `https://www.tefas.gov.tr/api/funds/dagilimSiraliGetirT` - portföy dağılımı.
 
-[Unreleased]: https://github.com/mirzazad/pytefas/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/mirzazad/pytefas/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/mirzazad/pytefas/releases/tag/v0.3.0
 [0.2.1]: https://github.com/mirzazad/pytefas/releases/tag/v0.2.1
 [0.2.0]: https://github.com/mirzazad/pytefas/releases/tag/v0.2.0
 [0.1.0]: https://github.com/mirzazad/pytefas/releases/tag/v0.1.0
