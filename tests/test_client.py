@@ -96,3 +96,18 @@ def test_parse_date_rejects_garbage():
     from pytefas.client import _parse_date
     with pytest.raises(TefasInvalidParameterError):
         _parse_date("not-a-date")
+
+
+def test_fetch_signature_accepts_fund_code(crawler):
+    """fetch() fund_code parametresini kabul eder (signature kontrolu)."""
+    import inspect
+    sig = inspect.signature(crawler.fetch)
+    assert "fund_code" in sig.parameters
+    assert sig.parameters["fund_code"].default is None
+
+
+def test_fetch_many_signature_accepts_fund_code(crawler):
+    """fetch_many() de fund_code parametresini kabul eder."""
+    import inspect
+    sig = inspect.signature(crawler.fetch_many)
+    assert "fund_code" in sig.parameters

@@ -114,6 +114,7 @@ class Crawler:
         end: Optional[DateLike] = None,
         kind: Kind = "YAT",
         columns: Columns = "info",
+        fund_code: Optional[str] = None,
     ) -> pd.DataFrame:
         """Belirli bir tarih (veya tarih aralığı) için TEFAS verisini çeker.
 
@@ -140,6 +141,12 @@ class Crawler:
 
             - ``"info"`` - fiyat, pay sayısı, yatırımcı sayısı, portföy büyüklüğü
             - ``"breakdown"`` - portföy varlık dağılımı (50+ yüzde sütunu)
+
+        fund_code : str veya None, default None
+            Belirli bir fon kodu (örn. ``"AAK"``). Verilirse sadece o fon
+            döndürülür - 1 yıllık geçmişi tek fon için çekmek bu sayede çok
+            daha hızlıdır. None ise verilen ``kind`` tipindeki tüm fonlar
+            döndürülür.
 
         Returns
         -------
@@ -169,6 +176,11 @@ class Crawler:
 
         >>> df = tefas.fetch("2025-01-01", "2026-04-01", kind="YAT")
         >>> df["date"].nunique()  # ~250 iş günü
+
+        Tek fonun 1 yıllık fiyat geçmişi:
+
+        >>> df = tefas.fetch("2025-04-28", "2026-04-28", fund_code="AAK")
+        >>> df[["date", "price"]].set_index("date")
         """
         if kind not in FUND_KINDS:
             raise TefasInvalidParameterError(
@@ -187,12 +199,15 @@ class Crawler:
                 f"start ({start_dt.date()}) end'den sonra olamaz ({end_dt.date()})"
             )
 
+        # fund_code normalize
+        fcode = fund_code.strip().upper() if fund_code else None
+
         # Chunk'lara böl
         chunks = _split_range(start_dt, end_dt, MAX_DAYS_PER_REQUEST)
 
         frames = []
         for chunk_start, chunk_end in chunks:
-            df = self._fetch_single(chunk_start, chunk_end, kind, columns)
+            df = self._fetch_single(chunk_start, chunk_end, kind, columns, fcode)
             if not df.empty:
                 frames.append(df)
 
@@ -212,11 +227,12 @@ class Crawler:
         end_dt: datetime,
         kind: Kind,
         columns: Columns,
+        fund_code: Optional[str] = None,
     ) -> pd.DataFrame:
         """Tek bir API çağrısı (en fazla MAX_DAYS_PER_REQUEST gün)."""
         body = {
             "fonTipi": kind,
-            "fonKodu": None,
+            "fonKodu": fund_code,
             "aramaMetni": None,
             "fonTurKod": None,
             "fonGrubu": None,
@@ -289,6 +305,7 @@ class Crawler:
         end: Optional[DateLike] = None,
         kinds: Iterable[Kind] = FUND_KINDS,
         columns: Columns = "info",
+        fund_code: Optional[str] = None,
     ) -> pd.DataFrame:
         """Birden fazla fon tipini tek seferde çeker, tek DataFrame döndürür.
 
@@ -302,6 +319,11 @@ class Crawler:
             Hangi fon tiplerinin çekileceği.
         columns : {"info", "breakdown"}, default "info"
             Hangi veri görünümü çekilecek.
+        fund_code : str veya None, default None
+            Belirli bir fon kodu. Verilirse her ``kind`` için sadece o kodu
+            sorgular. Hangi tipte olduğunu bilmediğinde kullanışlı:
+
+            >>> df = tefas.fetch_many("2026-04-24", fund_code="AAK")
 
         Returns
         -------
@@ -328,7 +350,9 @@ class Crawler:
         """
         frames = []
         for k in kinds:
-            df = self.fetch(start=start, end=end, kind=k, columns=columns)
+            df = self.fetch(
+                start=start, end=end, kind=k, columns=columns, fund_code=fund_code
+            )
             if not df.empty:
                 frames.append(df)
         if not frames:

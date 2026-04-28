@@ -93,3 +93,12 @@ def test_long_range_auto_chunks(crawler):
     # AAK gibi köklü bir fon her gün olmalı
     aak = df[df["fund_code"] == "AAK"]
     assert len(aak) >= 30
+
+
+def test_fund_code_filter(crawler):
+    """fund_code parametresi sadece o fonu döndürmeli."""
+    df = crawler.fetch("2026-04-20", "2026-04-24", kind="YAT", fund_code="AAK")
+    assert not df.empty
+    assert set(df["fund_code"].unique()) == {"AAK"}
+    # 5 iş günü içinde 4-5 satır beklenir (24 Cuma)
+    assert 3 <= len(df) <= 5
