@@ -90,15 +90,15 @@ def test_long_range_auto_chunks(crawler):
     assert not df.empty
     # 60 gün içinde ~40+ iş günü olmalı
     assert df["date"].nunique() >= 30
-    # AAK gibi köklü bir fon her gün olmalı
-    aak = df[df["fund_code"] == "AAK"]
-    assert len(aak) >= 30
+    # AAL gibi köklü bir fon her gün olmalı
+    aal = df[df["fund_code"] == "AAL"]
+    assert len(aal) >= 30
 
 
 def test_fund_code_filter(crawler):
     """fund_code parametresi sadece o fonu döndürmeli."""
-    df = crawler.fetch("2026-04-20", "2026-04-24", kind="YAT", fund_code="AAK")
+    df = crawler.fetch("2026-04-20", "2026-04-24", kind="YAT", fund_code="AAL")
     assert not df.empty
-    assert set(df["fund_code"].unique()) == {"AAK"}
+    assert set(df["fund_code"].unique()) == {"AAL"}
     # 5 iş günü içinde 4-5 satır beklenir (24 Cuma)
     assert 3 <= len(df) <= 5
