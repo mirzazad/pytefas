@@ -25,7 +25,7 @@ TEFAS sitesi 2026'da Next.js tabanlı yeni bir altyapıya geçti. Eski HTML scra
 - **Otomatik chunking** - uzun tarih aralıklarını arka planda parçalara böler.
 - **Otomatik rate-limit yönetimi** (TEFAS dakikada 6 istek sınırına sahiptir).
 - 50+ varlık dağılımı kolonu (hisse, repo, eurobond, kıymetli madenler vs.).
-- YAT / EMK / BYF fon tipleri tek DataFrame'de birleştirilebilir.
+- YAT / EMK / BYF / GYF / GSYF fon tipleri tek DataFrame'de birleştirilebilir.
 - Custom exception'lar - hata yönetimi tipli ve kontrollü.
 - Tam type hints + NumPy stilinde docstring'ler.
 
@@ -142,36 +142,42 @@ except TefasAPIError as e:
 
 ### `Crawler(timeout=60, max_retry=5)`
 
-| Parametre | Açıklama |
-|-----------|----------|
-| `timeout` | HTTP istekleri için saniye cinsinden zaman aşımı. |
+| Parametre   | Açıklama                                                         |
+|-------------|------------------------------------------------------------------|
+| `timeout`   | HTTP istekleri için saniye cinsinden zaman aşımı.                |
 | `max_retry` | Rate-limit veya geçici hatalarda maksimum yeniden deneme sayısı. |
 
 ### `Crawler.fetch(start, end=None, kind="YAT", columns="info", fund_code=None)`
 
-| Parametre | Tip | Açıklama |
-|-----------|-----|----------|
-| `start` | `str`, `date`, `datetime`, `pd.Timestamp` | Başlangıç tarihi. |
-| `end` | aynı, veya `None` | Bitiş tarihi. `None` = `start` ile aynı. |
-| `kind` | `"YAT"`, `"EMK"`, `"BYF"` | Fon tipi (Yatırım / Emeklilik / BYF). |
-| `columns` | `"info"` veya `"breakdown"` | Genel bilgi mi portföy dağılımı mı. |
-| `fund_code` | `str` veya `None` | Belirli bir fon kodu (örn. `"AAK"`). `None` → tüm fonlar. |
+| Parametre   | Tip                                           | Açıklama                                                                                                       |
+|-------------|-----------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| `start`     | `str`, `date`, `datetime`, `pd.Timestamp`     | Başlangıç tarihi.                                                                                              |
+| `end`       | aynı, veya `None`                             | Bitiş tarihi. `None` = `start` ile aynı.                                                                       |
+| `kind`      | `"YAT"`, `"EMK"`, `"BYF"`, `"GYF"`, `"GSYF"`  | Fon tipi (Yatırım / Emeklilik / Borsa Yatırım / Gayrimenkul Yatırım / Girişim Sermayesi Yatırım).              |
+| `columns`   | `"info"` veya `"breakdown"`                   | Genel bilgi mi portföy dağılımı mı.                                                                            |
+| `fund_code` | `str` veya `None`                             | Belirli bir fon kodu (örn. `"AAL"`). `None` → tüm fonlar.                                                      |
 
 ### `Crawler.fetch_many(start, end=None, kinds=("YAT","EMK","BYF"), columns="info", fund_code=None)`
 
 `fetch` ile aynı, ama birden fazla `kind`'ı tek DataFrame'de birleştirir. `fund_code` verirsen her tipte o kodu arar - hangi tipte olduğunu bilmiyorsan kullanışlı.
 
+GYF ve GSYF default'ta dahil **değildir** (geriye uyumluluk). Dahil etmek için açıkça ver:
+
+```python
+df = tefas.fetch_many("2026-05-12", kinds=("YAT","EMK","BYF","GYF","GSYF"))
+```
+
 ## Tarihsel veri ve süre tahmini
 
 TEFAS rate-limit'i nedeniyle uzun aralıklar zaman alır:
 
-| Aralık | Tahmini süre |
-|--------|--------------|
-| 1 hafta | ~10 saniye |
-| 1 ay | ~10 saniye (1 chunk) |
-| 3 ay | ~1 dakika |
-| 1 yıl | ~3 dakika |
-| 5 yıl | ~15 dakika |
+| Aralık  | Tahmini süre         |
+|---------|----------------------|
+| 1 hafta | ~10 saniye           |
+| 1 ay    | ~10 saniye (1 chunk) |
+| 3 ay    | ~1 dakika            |
+| 1 yıl   | ~3 dakika            |
+| 5 yıl   | ~15 dakika           |
 
 ## Stabilite
 

@@ -9,6 +9,35 @@ ve bu proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanır
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-14
+
+### Added
+
+- **Yeni fon tipleri**: `GYF` (Gayrimenkul Yatırım Fonu) ve `GSYF` (Girişim
+  Sermayesi Yatırım Fonu) artık `kind` parametresi olarak kullanılabilir.
+  Aynı API endpoint'leri (info + breakdown) kullanılır, şema değişmez.
+
+  ```python
+  df = tefas.fetch("2026-05-12", kind="GYF")    # ~243 GYF fonu
+  df = tefas.fetch("2026-05-12", kind="GSYF")   # ~507 GSYF fonu
+  ```
+
+- Canary suite'e GYF ve GSYF için 2 yeni test eklendi.
+
+### Changed
+
+- `fetch_many()` default `kinds` değeri sabit `("YAT","EMK","BYF")` olarak
+  kaldı (geriye uyumluluk). GYF/GSYF dahil etmek için açıkça verilmeli:
+
+  ```python
+  df = tefas.fetch_many("2026-05-12", kinds=("YAT","EMK","BYF","GYF","GSYF"))
+  ```
+
+### Fixed
+
+- Canary testlerindeki AAK fon kodu, TEFAS'tan kaldırıldığı için AAL ile
+  değiştirildi.
+
 ## [0.3.0] - 2026-04-28
 
 ### Added
@@ -79,7 +108,8 @@ ve bu proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanır
 - `https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir` - fon genel bilgileri.
 - `https://www.tefas.gov.tr/api/funds/dagilimSiraliGetirT` - portföy dağılımı.
 
-[Unreleased]: https://github.com/mirzazad/pytefas/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/mirzazad/pytefas/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/mirzazad/pytefas/releases/tag/v0.4.0
 [0.3.0]: https://github.com/mirzazad/pytefas/releases/tag/v0.3.0
 [0.2.1]: https://github.com/mirzazad/pytefas/releases/tag/v0.2.1
 [0.2.0]: https://github.com/mirzazad/pytefas/releases/tag/v0.2.0
