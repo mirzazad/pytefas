@@ -102,3 +102,33 @@ def test_fund_code_filter(crawler):
     assert set(df["fund_code"].unique()) == {"AAL"}
     # 5 iş günü içinde 4-5 satır beklenir (24 Cuma)
     assert 3 <= len(df) <= 5
+
+
+def test_gyf_info_endpoint(crawler, last_bd):
+    """GYF (Gayrimenkul Yatırım Fonu) info endpoint'i çalışıyor mu."""
+    last = datetime.strptime(last_bd, "%Y-%m-%d")
+    df = None
+    for back in range(0, 5):
+        d = (last - timedelta(days=back)).strftime("%Y-%m-%d")
+        df = crawler.fetch(d, columns="info", kind="GYF")
+        if not df.empty:
+            break
+    assert df is not None and not df.empty, "Son 5 iş gününde de GYF info çekilemedi"
+    # GYF fon sayısı ~200+ olmalı
+    assert len(df) > 50, f"Çok az GYF fonu döndü: {len(df)}"
+    assert (df["kind"] == "GYF").all()
+
+
+def test_gsyf_breakdown_endpoint(crawler, last_bd):
+    """GSYF (Girişim Sermayesi Yatırım Fonu) breakdown endpoint'i çalışıyor mu."""
+    last = datetime.strptime(last_bd, "%Y-%m-%d")
+    df = None
+    for back in range(0, 5):
+        d = (last - timedelta(days=back)).strftime("%Y-%m-%d")
+        df = crawler.fetch(d, columns="breakdown", kind="GSYF")
+        if not df.empty:
+            break
+    assert df is not None and not df.empty
+    assert len(df) > 100, f"Çok az GSYF fonu döndü: {len(df)}"
+    # GSYF fonları ağırlıklı olarak venture_capital_investment_pct'e yakın olmalı
+    assert "venture_capital_investment_pct" in df.columns
