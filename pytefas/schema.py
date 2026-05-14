@@ -82,4 +82,6 @@ INFO_FIELDS = {
 }
 
 # Geçerli fon tipleri
-FUND_KINDS = ("YAT", "EMK", "BYF")
+# YAT=Yatırım, EMK=Emeklilik, BYF=Borsa Yatırım,
+# GYF=Gayrimenkul Yatırım, GSYF=Girişim Sermayesi Yatırım
+FUND_KINDS = ("YAT", "EMK", "BYF", "GYF", "GSYF")

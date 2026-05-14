@@ -32,7 +32,7 @@ DEFAULT_HEADERS = {
 }
 
 DateLike = Union[str, date, datetime, pd.Timestamp]
-Kind = Literal["YAT", "EMK", "BYF"]
+Kind = Literal["YAT", "EMK", "BYF", "GYF", "GSYF"]
 Columns = Literal["info", "breakdown"]
 
 
@@ -129,12 +129,14 @@ class Crawler:
             Başlangıç tarihi. String için 'YYYY-MM-DD' formatı önerilir.
         end : str, date, datetime, pd.Timestamp veya None, default None
             Bitiş tarihi. None ise sadece `start` günü çekilir.
-        kind : {"YAT", "EMK", "BYF"}, default "YAT"
+        kind : {"YAT", "EMK", "BYF", "GYF", "GSYF"}, default "YAT"
             Fon tipi:
 
             - ``"YAT"`` - Yatırım Fonları
             - ``"EMK"`` - Emeklilik Fonları
             - ``"BYF"`` - Borsa Yatırım Fonları
+            - ``"GYF"`` - Gayrimenkul Yatırım Fonları
+            - ``"GSYF"`` - Girişim Sermayesi Yatırım Fonları
 
         columns : {"info", "breakdown"}, default "info"
             Hangi veri görünümü:
@@ -303,7 +305,7 @@ class Crawler:
         self,
         start: DateLike,
         end: Optional[DateLike] = None,
-        kinds: Iterable[Kind] = FUND_KINDS,
+        kinds: Iterable[Kind] = ("YAT", "EMK", "BYF"),
         columns: Columns = "info",
         fund_code: Optional[str] = None,
     ) -> pd.DataFrame:
@@ -315,8 +317,10 @@ class Crawler:
             Başlangıç tarihi.
         end : str, date, datetime, pd.Timestamp veya None, default None
             Bitiş tarihi. None ise sadece `start` günü çekilir.
-        kinds : iterable of {"YAT", "EMK", "BYF"}, default ("YAT", "EMK", "BYF")
-            Hangi fon tiplerinin çekileceği.
+        kinds : iterable of {"YAT", "EMK", "BYF", "GYF", "GSYF"}, default ("YAT", "EMK", "BYF")
+            Hangi fon tiplerinin çekileceği. GYF ve GSYF default'a dahil
+            DEĞİLDİR (geriye uyumluluk için) - dahil etmek istersen açıkça
+            ``kinds=("YAT","EMK","BYF","GYF","GSYF")`` ver.
         columns : {"info", "breakdown"}, default "info"
             Hangi veri görünümü çekilecek.
         fund_code : str veya None, default None
