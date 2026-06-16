@@ -9,6 +9,20 @@ ve bu proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanır
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-06-16
+
+### Fixed
+
+- **Ağ hatalarında otomatik yeniden deneme**: `RateLimitedClient.post_json`
+  artık `requests.ConnectionError` (örn. `RemoteDisconnected`), `Timeout`
+  (`ReadTimeout` / `ConnectTimeout`) ve `ChunkedEncodingError` durumlarında
+  exponential backoff ile yeniden dener. Daha önce ilk ağ hatasında istek
+  başarısız oluyordu - bu durum özellikle CI ortamlarından TEFAS'a yapılan
+  uzun istek serilerinde canary testleri kırıyordu.
+
+  Davranış geriye uyumludur: tüm `max_retry` denemeleri tükenirse hâlâ
+  `TefasRateLimitError` (`RuntimeError`'dan türer) fırlatılır.
+
 ## [0.4.0] - 2026-05-14
 
 ### Added
@@ -108,7 +122,8 @@ ve bu proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanır
 - `https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir` - fon genel bilgileri.
 - `https://www.tefas.gov.tr/api/funds/dagilimSiraliGetirT` - portföy dağılımı.
 
-[Unreleased]: https://github.com/mirzazad/pytefas/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/mirzazad/pytefas/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/mirzazad/pytefas/releases/tag/v0.4.1
 [0.4.0]: https://github.com/mirzazad/pytefas/releases/tag/v0.4.0
 [0.3.0]: https://github.com/mirzazad/pytefas/releases/tag/v0.3.0
 [0.2.1]: https://github.com/mirzazad/pytefas/releases/tag/v0.2.1
