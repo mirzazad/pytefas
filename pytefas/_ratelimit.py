@@ -20,9 +20,30 @@ class RateLimitedClient:
         self.max_retry = max_retry
 
     def post_json(self, url: str, body: dict, headers: Dict[str, str]) -> Dict[str, Any]:
-        """JSON body POST eder. 429 ve boş response durumunda bekleyip yeniden dener."""
+        """JSON body POST eder. 429, boş response ve ağ hatalarında yeniden dener.
+
+        Yeniden denenen durumlar:
+        - HTTP 429 (rate-limit)
+        - HTTP 200 boş gövde
+        - JSON parse hatası
+        - ``requests.ConnectionError`` (örn. RemoteDisconnected)
+        - ``requests.Timeout`` (ReadTimeout / ConnectTimeout)
+        - ``requests.ChunkedEncodingError``
+        """
+        last_exc: Exception | None = None
         for attempt in range(self.max_retry):
-            r = self.session.post(url, headers=headers, json=body, timeout=self.timeout)
+            try:
+                r = self.session.post(url, headers=headers, json=body, timeout=self.timeout)
+            except (
+                requests.ConnectionError,
+                requests.Timeout,
+                requests.exceptions.ChunkedEncodingError,
+            ) as exc:
+                # Ağ kopması / timeout - exponential backoff ile yeniden dene
+                last_exc = exc
+                time.sleep(min(2 ** attempt, 30))
+                continue
+
             remaining = r.headers.get("ratelimit-remaining")
             reset = r.headers.get("ratelimit-reset")
 
@@ -55,4 +76,7 @@ class RateLimitedClient:
 
             return data
 
-        raise RuntimeError(f"{self.max_retry} denemeden sonra başarısız ({url})")
+        msg = f"{self.max_retry} denemeden sonra başarısız ({url})"
+        if last_exc is not None:
+            msg += f" - son hata: {type(last_exc).__name__}: {last_exc}"
+        raise RuntimeError(msg)
