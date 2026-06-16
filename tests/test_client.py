@@ -111,3 +111,85 @@ def test_fetch_many_signature_accepts_fund_code(crawler):
     import inspect
     sig = inspect.signature(crawler.fetch_many)
     assert "fund_code" in sig.parameters
+
+
+def test_post_json_retries_on_connection_error(monkeypatch):
+    """ConnectionError sonrası başarılı response gelirse retry devreye girer."""
+    import requests
+    from pytefas._ratelimit import RateLimitedClient
+
+    monkeypatch.setattr("time.sleep", lambda *_: None)
+    client = RateLimitedClient(timeout=5, max_retry=3)
+
+    calls = {"n": 0}
+
+    class _OkResp:
+        status_code = 200
+        text = '{"resultList": []}'
+        headers: dict = {}
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"resultList": []}
+
+    def fake_post(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise requests.ConnectionError("Remote end closed connection without response")
+        return _OkResp()
+
+    monkeypatch.setattr(client.session, "post", fake_post)
+    out = client.post_json("https://example/x", {}, {})
+    assert out == {"resultList": []}
+    assert calls["n"] == 2
+
+
+def test_post_json_retries_on_read_timeout(monkeypatch):
+    """ReadTimeout sonrası başarılı response gelirse retry devreye girer."""
+    import requests
+    from pytefas._ratelimit import RateLimitedClient
+
+    monkeypatch.setattr("time.sleep", lambda *_: None)
+    client = RateLimitedClient(timeout=5, max_retry=3)
+
+    calls = {"n": 0}
+
+    class _OkResp:
+        status_code = 200
+        text = '{"ok": 1}'
+        headers: dict = {}
+
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"ok": 1}
+
+    def fake_post(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] <= 2:
+            raise requests.Timeout("Read timed out")
+        return _OkResp()
+
+    monkeypatch.setattr(client.session, "post", fake_post)
+    out = client.post_json("https://example/x", {}, {})
+    assert out == {"ok": 1}
+    assert calls["n"] == 3
+
+
+def test_post_json_raises_after_max_retries_exhausted(monkeypatch):
+    """Sürekli ağ hatası → max_retry'dan sonra RuntimeError, son hata mesajda."""
+    import requests
+    from pytefas._ratelimit import RateLimitedClient
+
+    monkeypatch.setattr("time.sleep", lambda *_: None)
+    client = RateLimitedClient(timeout=5, max_retry=2)
+
+    def fake_post(*args, **kwargs):
+        raise requests.ConnectionError("boom")
+
+    monkeypatch.setattr(client.session, "post", fake_post)
+    with pytest.raises(RuntimeError, match="ConnectionError"):
+        client.post_json("https://example/x", {}, {})
