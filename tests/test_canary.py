@@ -74,12 +74,16 @@ def test_holiday_returns_empty(crawler):
 
 def test_fetch_many_combines_kinds(crawler, last_bd):
     """fetch_many YAT/EMK/BYF'i birleştirebiliyor mu."""
-    df = crawler.fetch_many(last_bd, columns="info")
-    if df.empty:
-        # Son iş gününde de boş gelirse 1 gün öncesini dene
-        prev = (datetime.strptime(last_bd, "%Y-%m-%d") - timedelta(days=3)).strftime("%Y-%m-%d")
-        df = crawler.fetch_many(prev, columns="info")
-    assert not df.empty
+    # Diğer testler gibi geriye doğru tara: bugünün verisi henüz yayınlanmamış
+    # olabilir (cron gecikip UTC gece yarısını geçerse) veya gün tatil olabilir.
+    last = datetime.strptime(last_bd, "%Y-%m-%d")
+    df = None
+    for back in range(0, 5):
+        d = (last - timedelta(days=back)).strftime("%Y-%m-%d")
+        df = crawler.fetch_many(d, columns="info")
+        if not df.empty:
+            break
+    assert df is not None and not df.empty, "Son 5 günde fetch_many veri döndürmedi"
     kinds = set(df["kind"].unique())
     assert kinds == {"YAT", "EMK", "BYF"}
 
